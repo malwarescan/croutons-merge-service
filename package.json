@@ -1,0 +1,30 @@
+{
+  "name": "croutons-merge-service",
+  "version": "1.0.0",
+  "description": "Croutons Merge Service for Bangkok Massage Intelligence",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ioredis": "^5.4.1",
+    "better-sqlite3": "^9.4.0",
+    "node-fetch": "^3.3.2",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "croutons",
+    "merge",
+    "bangkok",
+    "massage"
+  ],
+  "author": "Croutons Team",
+  "license": "ISC"
+}
+

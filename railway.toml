@@ -1,0 +1,15 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "./Dockerfile"
+
+[deploy]
+startCommand = "npm start"
+restartPolicyType = "ON_FAILURE"
+healthcheckPath = "/v1/health"
+healthcheckTimeout = 100
+
+[env]
+PORT = "8080"
+REDIS_URL = "redis://default:${{RAILWAY_REDIS_PASSWORD}}@${{RAILWAY_REDIS_HOST}}:${{RAILWAY_REDIS_PORT}}"
+NODE_ENV = "production"
+

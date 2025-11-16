@@ -1,0 +1,21 @@
+{"@type":"PriceTier","district":"Asok","massage_type":"traditional","price_low":400,"price_high":500,"price_typical":450,"currency":"THB","notes":"Premium district pricing"}
+{"@type":"PriceTier","district":"Asok","massage_type":"oil","price_low":650,"price_high":800,"price_typical":700,"currency":"THB","notes":"Premium district pricing"}
+{"@type":"PriceTier","district":"Nana","massage_type":"traditional","price_low":300,"price_high":450,"price_typical":350,"currency":"THB","notes":"Tourist area, wide price range"}
+{"@type":"PriceTier","district":"Nana","massage_type":"oil","price_low":500,"price_high":700,"price_typical":550,"currency":"THB","notes":"Tourist area, wide price range"}
+{"@type":"PriceTier","district":"Phrom Phong","massage_type":"traditional","price_low":450,"price_high":600,"price_typical":500,"currency":"THB","notes":"Upscale area"}
+{"@type":"PriceTier","district":"Phrom Phong","massage_type":"oil","price_low":700,"price_high":900,"price_typical":750,"currency":"THB","notes":"Upscale area"}
+{"@type":"PriceTier","district":"Thonglor","massage_type":"traditional","price_low":500,"price_high":650,"price_typical":550,"currency":"THB","notes":"Trendy upscale area"}
+{"@type":"PriceTier","district":"Thonglor","massage_type":"oil","price_low":750,"price_high":950,"price_typical":800,"currency":"THB","notes":"Trendy upscale area"}
+{"@type":"PriceTier","district":"Ekkamai","massage_type":"traditional","price_low":350,"price_high":500,"price_typical":400,"currency":"THB","notes":"Mixed area pricing"}
+{"@type":"PriceTier","district":"Ekkamai","massage_type":"oil","price_low":550,"price_high":750,"price_typical":650,"currency":"THB","notes":"Mixed area pricing"}
+{"@type":"PriceTier","district":"Silom","massage_type":"traditional","price_low":350,"price_high":500,"price_typical":400,"currency":"THB","notes":"Business district pricing"}
+{"@type":"PriceTier","district":"Silom","massage_type":"oil","price_low":550,"price_high":750,"price_typical":650,"currency":"THB","notes":"Business district pricing"}
+{"@type":"PriceTier","district":"Ari","massage_type":"traditional","price_low":300,"price_high":400,"price_typical":350,"currency":"THB","notes":"Local area, lower prices"}
+{"@type":"PriceTier","district":"Ari","massage_type":"oil","price_low":450,"price_high":650,"price_typical":550,"currency":"THB","notes":"Local area, lower prices"}
+{"@type":"PriceTier","district":"Victory Monument","massage_type":"traditional","price_low":250,"price_high":350,"price_typical":300,"currency":"THB","notes":"Budget-friendly area"}
+{"@type":"PriceTier","district":"Victory Monument","massage_type":"oil","price_low":400,"price_high":600,"price_typical":500,"currency":"THB","notes":"Budget-friendly area"}
+{"@type":"PriceTier","district":"Ratchada","massage_type":"traditional","price_low":300,"price_high":450,"price_typical":350,"currency":"THB","notes":"Growing commercial area"}
+{"@type":"PriceTier","district":"Ratchada","massage_type":"oil","price_low":500,"price_high":700,"price_typical":600,"currency":"THB","notes":"Growing commercial area"}
+{"@type":"PriceTier","district":"Old City","massage_type":"traditional","price_low":350,"price_high":500,"price_typical":400,"currency":"THB","notes":"Tourist area pricing"}
+{"@type":"PriceTier","district":"Old City","massage_type":"oil","price_low":550,"price_high":750,"price_typical":650,"currency":"THB","notes":"Tourist area pricing"}
+
