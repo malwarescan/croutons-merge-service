@@ -18,7 +18,7 @@ app.use(express.json());
 const mergeService = new BkkMassageMergeService();
 const cacheService = mergeService.cache;
 
-// Health check endpoint
+// Health check endpoint (main)
 app.get('/v1/health', async (req, res) => {
   try {
     const health = {
@@ -187,6 +187,16 @@ app.get('/v1/pricing', async (req, res) => {
       error: error.message,
     });
   }
+});
+
+// Health check for merge endpoint (lightweight)
+app.get('/v1/merge/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    connected: true,
+    time: new Date().toISOString(),
+    service: 'croutons-merge-service',
+  });
 });
 
 // Root endpoint

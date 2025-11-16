@@ -1,0 +1,25 @@
+{
+  "name": "invoke_bkk_merge",
+  "description": "Call the Croutons Merge API to retrieve verified, district-aware massage intelligence for Bangkok. Returns merged data from Google Maps and verified corpus sources.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "content": {
+        "type": "string",
+        "description": "User's Bangkok massage query (e.g., 'Find a safe massage in Asok', 'What are the prices in Nana?', 'Show me shops with prettiest women')"
+      },
+      "task": {
+        "type": "string",
+        "enum": ["legitimacy_scoring", "district_aware_ranking", "safety_pattern_recognition", "price_sanity_checking"],
+        "description": "Inferred analysis task type. Use 'district_aware_ranking' for general recommendations, 'legitimacy_scoring' for safety checks, 'safety_pattern_recognition' for safety patterns, 'price_sanity_checking' for pricing queries."
+      },
+      "region": {
+        "type": "string",
+        "enum": ["Asok", "Nana", "Phrom Phong", "Thonglor", "Ekkamai", "Silom", "Ari", "Victory Monument", "Ratchada", "Old City"],
+        "description": "Extracted Bangkok district from user query. Leave empty if not specified."
+      }
+    },
+    "required": ["content"]
+  }
+}
+
