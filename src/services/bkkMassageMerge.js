@@ -20,7 +20,25 @@ export class BkkMassageMergeService {
     const districtProfiles = await this.cache.getDistrictProfiles();
     const pricingReference = await this.cache.getPricingReference();
 
-    // Merge each live shop
+    // If no live shops, return corpus data only (filtered by district if provided)
+    if (!liveShops || liveShops.length === 0) {
+      console.log(`[merge] No live shops provided, returning ${corpusShops.length} corpus shops`);
+      return corpusShops.map(shop => {
+        const shopDistrict = this.extractDistrict(shop.address) || district;
+        const districtProfile = districtProfiles.find(d => d.name === shopDistrict);
+        const pricingRef = pricingReference.filter(p => p.district === shopDistrict);
+
+        return {
+          ...shop,
+          data_sources: ['corpus'],
+          confidence: 0.8, // High confidence for corpus data
+          district_info: districtProfile || null,
+          pricing_reference: pricingRef,
+        };
+      });
+    }
+
+    // Merge each live shop with corpus data
     const mergedShops = liveShops.map(liveShop => {
       const corpusMatch = this.findMatchingShop(liveShop, corpusShops);
       const shopDistrict = this.extractDistrict(liveShop.address) || district;
