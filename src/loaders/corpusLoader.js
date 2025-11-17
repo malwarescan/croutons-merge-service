@@ -4,11 +4,26 @@ import { dirname, join } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const CORPUS_DIR = join(__dirname, '../../../corpus');
+// Try multiple paths: relative to loader, relative to project root, absolute
+const CORPUS_DIR = process.env.CORPUS_DIR || 
+  (existsSync(join(__dirname, '../../../corpus')) ? join(__dirname, '../../../corpus') :
+   existsSync(join(process.cwd(), 'corpus')) ? join(process.cwd(), 'corpus') :
+   join(__dirname, '../../../corpus')); // fallback
 
 export function loadCorpusFiles(filename) {
   try {
     const filepath = join(CORPUS_DIR, filename);
+    
+    // Debug logging
+    console.log(`[corpus] Loading ${filename} from ${filepath}`);
+    console.log(`[corpus] CORPUS_DIR: ${CORPUS_DIR}`);
+    console.log(`[corpus] File exists: ${existsSync(filepath)}`);
+    
+    if (!existsSync(filepath)) {
+      console.warn(`[corpus] File not found: ${filepath}`);
+      return null;
+    }
+    
     const content = readFileSync(filepath, 'utf-8');
 
     if (filename.endsWith('.ndjson')) {
