@@ -3,14 +3,31 @@
 
 import express from 'express';
 import cors from 'cors';
-// import { pool } from './src/db.js';
-// import { emitSourceParticipation } from './src/routes/events.js';
 
-// Temporary mock pool for testing
-const pool = null;
+// Database connection with error handling
+let pool = null;
+let emitSourceParticipation = null;
 
-const app = express();
-const PORT = process.env.PORT || 8081;
+// Async function to setup server
+async function setupServer() {
+  try {
+    const dbModule = await import('./src/db.js');
+    pool = dbModule.pool;
+    console.log('[md-server] Database imported successfully');
+  } catch (error) {
+    console.error('[md-server] Failed to import database:', error.message);
+  }
+
+  try {
+    const eventsModule = await import('./src/routes/events.js');
+    emitSourceParticipation = eventsModule.emitSourceParticipation;
+    console.log('[md-server] Events module imported successfully');
+  } catch (error) {
+    console.error('[md-server] Failed to import events module:', error.message);
+  }
+
+  const app = express();
+  const PORT = process.env.PORT || 8081;
 
 // Basic middleware FIRST
 app.use(express.json());
@@ -218,4 +235,12 @@ console.log('========================');
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`md-server listening on ${PORT}`);
+});
+
+}
+
+// Start the server
+setupServer().catch(error => {
+  console.error('[md-server] Failed to start server:', error);
+  process.exit(1);
 });
