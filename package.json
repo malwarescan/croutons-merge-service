@@ -13,7 +13,8 @@
     "ioredis": "^5.4.1",
     "better-sqlite3": "^9.4.0",
     "node-fetch": "^3.3.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "pg": "^8.16.3"
   },
   "engines": {
     "node": ">=20.0.0"
