@@ -130,10 +130,20 @@ app.get('/test', (req, res) => {
   res.json({ message: 'Test route works', path: req.path });
 });
 
-// Main markdown serving endpoint (simple test)
+// Main markdown serving endpoint
 app.get('*', (req, res) => {
-  console.log('[md-server] Wildcard route hit:', req.path);
-  res.json({ message: 'Wildcard route works', path: req.path });
+  console.log('[md-server] Route hit:', req.path);
+  
+  // Extract domain from path
+  const segments = req.path.split('/').filter(Boolean);
+  const domain = segments[0] || 'unknown';
+  
+  console.log('[md-server] Extracted domain:', domain);
+  
+  // Return 404 for unknown domains (database not available)
+  console.log('[md-server] No database pool - returning 404 for unknown domains');
+  res.set('Cache-Control', 'no-store');
+  return res.status(404).json({ error: 'domain_not_found', domain });
 });
 
 // Cleanup rate limit entries
