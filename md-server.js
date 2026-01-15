@@ -205,13 +205,18 @@ app.get('*', rateLimit, normalizeRequest, async (req, res) => {
       'Last-Modified': new Date(generated_at).toUTCString()
     });
     
-    // Emit source participation event
+    // Emit source participation event (non-critical)
     if (emitSourceParticipation) {
-      await emitSourceParticipation(
-        domain, 
-        'alternate_link', 
-        req.get('User-Agent') || ''
-      );
+      try {
+        await emitSourceParticipation(
+          domain, 
+          'alternate_link', 
+          req.get('User-Agent') || ''
+        );
+      } catch (eventError) {
+        console.error('[md-server] Failed to emit source participation event:', eventError);
+        // Don't fail the request, just log the error
+      }
     }
     
     // Size limit (2MB)
@@ -223,17 +228,39 @@ app.get('*', rateLimit, normalizeRequest, async (req, res) => {
     
   } catch (error) {
     console.error('[md-server] Error:', error);
+    console.error('[md-server] Stack trace:', error.stack);
     
     // Check if it's a database connection error
     if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.message?.includes('database')) {
       logRequest(req, 503);
       res.set('Cache-Control', 'no-store');
-      return res.status(503).json({ error: 'database_unavailable' });
+      return res.status(503).json({ 
+        error: 'database_unavailable',
+        message: 'Database service is temporarily unavailable',
+        timestamp: new Date().toISOString()
+      });
     }
     
+    // Check if it's a validation error
+    if (error.message?.includes('validation') || error.message?.includes('invalid')) {
+      logRequest(req, 400);
+      res.set('Cache-Control', 'no-store');
+      return res.status(400).json({ 
+        error: 'validation_error',
+        message: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // Generic 500 error with structured response
     logRequest(req, 500);
     res.set('Cache-Control', 'no-store');
-    res.status(500).send('Internal server error');
+    res.status(500).json({ 
+      error: 'internal_server_error',
+      message: 'An unexpected error occurred while processing your request',
+      timestamp: new Date().toISOString(),
+      request_id: Math.random().toString(36).substr(2, 9)
+    });
   }
 });
 
