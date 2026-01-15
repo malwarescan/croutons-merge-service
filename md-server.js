@@ -107,6 +107,13 @@ app.get('/health', (req, res) => {
 // Main markdown serving endpoint
 app.get('*', rateLimit, normalizeRequest, async (req, res) => {
   try {
+    // Check database availability first
+    if (!pool) {
+      logRequest(req, 503);
+      res.set('Cache-Control', 'no-store');
+      return res.status(503).json({ error: 'database_unavailable' });
+    }
+    
     const { normalizedDomain: domain, normalizedPath: path } = req;
     
     // Rule A: Check if domain is verified
