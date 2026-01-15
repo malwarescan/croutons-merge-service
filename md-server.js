@@ -9,6 +9,14 @@ import { emitSourceParticipation } from './src/routes/events.js';
 const app = express();
 const PORT = process.env.PORT || 8081;
 
+// Basic middleware FIRST
+app.use(express.json());
+app.use(cors({
+  origin: '*',
+  methods: ['GET'],
+  allowedHeaders: ['Content-Type']
+}));
+
 // Rate limiting (simple in-memory)
 const rateLimitStore = new Map();
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
@@ -41,13 +49,6 @@ function rateLimit(req, res, next) {
   record.count++;
   next();
 }
-
-// CORS (minimal)
-app.use(cors({
-  origin: '*',
-  methods: ['GET'],
-  allowedHeaders: ['Content-Type']
-}));
 
 // Request normalization
 function normalizeRequest(req, res, next) {
