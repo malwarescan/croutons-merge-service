@@ -136,10 +136,10 @@ app.get('*', rateLimit, normalizeRequest, async (req, res) => {
   try {
     // Check database availability first
     if (!pool) {
-      console.log('[md-server] No database pool');
-      logRequest(req, 503);
+      console.log('[md-server] No database pool - returning 404 for unknown domains');
+      logRequest(req, 404);
       res.set('Cache-Control', 'no-store');
-      return res.status(503).json({ error: 'database_unavailable' });
+      return res.status(404).json({ error: 'domain_not_found', domain: req.normalizedDomain });
     }
     
     console.log('[md-server] Database pool available');
