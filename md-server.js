@@ -114,8 +114,12 @@ app.get('*', rateLimit, normalizeRequest, async (req, res) => {
       'SELECT verified_at FROM verified_domains WHERE domain = $1',
       [domain]
     );
+
+    if (domainCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'domain_not_found', domain });
+    }
     
-    if (domainCheck.rows.length === 0 || !domainCheck.rows[0].verified_at) {
+    if (!domainCheck.rows[0].verified_at) {
       logRequest(req, 403);
       res.set('Cache-Control', 'no-store');
       return res.status(403).send('Forbidden');
