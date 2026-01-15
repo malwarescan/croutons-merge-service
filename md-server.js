@@ -3,8 +3,11 @@
 
 import express from 'express';
 import cors from 'cors';
-import { pool } from './src/db.js';
-import { emitSourceParticipation } from './src/routes/events.js';
+// import { pool } from './src/db.js';
+// import { emitSourceParticipation } from './src/routes/events.js';
+
+// Temporary mock pool for testing
+const pool = null;
 
 const app = express();
 const PORT = process.env.PORT || 8081;
