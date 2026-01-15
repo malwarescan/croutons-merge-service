@@ -78,8 +78,26 @@ function normalizeRequest(req, res, next) {
     return res.status(400).send('Bad request');
   }
 
-  const domain = segments[0];
+  let domain = segments[0];
   const pathSegments = segments.slice(1);
+  
+  // Normalize domain to match database storage format
+  // Convert to lowercase, remove www prefix if present, and clean up
+  domain = domain.toLowerCase().trim();
+  if (domain.startsWith('www.')) {
+    domain = domain.slice(4);
+  }
+  
+  // Remove port number if present (e.g., example.com:8080 -> example.com)
+  const portMatch = domain.match(/:(\d+)$/);
+  if (portMatch) {
+    domain = domain.slice(0, -portMatch[0].length);
+  }
+  
+  // Remove trailing slash if present
+  domain = domain.replace(/\/$/, '');
+  
+  console.log('[md-server] Normalized domain:', domain, 'from:', segments[0]);
   
   // Remove .md extension if present
   if (pathSegments.length > 0) {
@@ -131,19 +149,92 @@ app.get('/test', (req, res) => {
 });
 
 // Main markdown serving endpoint
-app.get('*', (req, res) => {
+app.get('*', rateLimit, normalizeRequest, async (req, res) => {
   console.log('[md-server] Route hit:', req.path);
-  
-  // Extract domain from path
-  const segments = req.path.split('/').filter(Boolean);
-  const domain = segments[0] || 'unknown';
-  
-  console.log('[md-server] Extracted domain:', domain);
-  
-  // Return 404 for unknown domains (database not available)
-  console.log('[md-server] No database pool - returning 404 for unknown domains');
-  res.set('Cache-Control', 'no-store');
-  return res.status(404).json({ error: 'domain_not_found', domain });
+  try {
+    // Use normalized values from middleware
+    const { normalizedDomain: domain, normalizedPath: path } = req;
+    console.log('[md-server] Normalized domain:', domain);
+    
+    // Check database availability first
+    if (!pool) {
+      console.log('[md-server] No database pool - returning 404 for unknown domains');
+      logRequest(req, 404);
+      res.set('Cache-Control', 'no-store');
+      return res.status(404).json({ error: 'domain_not_found', domain });
+    }
+    
+    console.log('[md-server] Database pool available');
+    
+    // Rule A: Check if domain is verified
+    const r = await pool.query(
+      'SELECT verified_at FROM verified_domains WHERE domain = $1',
+      [domain]
+    );
+
+    if (r.rows.length === 0) {
+      return res.status(404).json({ error: 'domain_not_found', domain });
+    }
+    
+    if (!r.rows[0].verified_at) {
+      logRequest(req, 403);
+      res.set('Cache-Control', 'no-store');
+      return res.status(403).send('Forbidden');
+    }
+    
+    // Rule B: Check if active markdown exists
+    const markdownCheck = await pool.query(
+      'SELECT content, content_hash, generated_at FROM markdown_versions WHERE domain = $1 AND path = $2 AND is_active = true',
+      [domain, path]
+    );
+
+    if (markdownCheck.rows.length === 0) {
+      logRequest(req, 404);
+      res.set('Cache-Control', 'no-store');
+      return res.status(404).send('Markdown not found');
+    }
+
+    // Rule C: Return markdown
+    const { content, content_hash, generated_at } = markdownCheck.rows[0];
+    
+    logRequest(req, 200);
+    res.set({
+      'Content-Type': 'text/markdown; charset=utf-8',
+      'Cache-Control': 'public, max-age=300',
+      'ETag': `"${content_hash}"`,
+      'Last-Modified': new Date(generated_at).toUTCString()
+    });
+    
+    // Emit source participation event
+    if (emitSourceParticipation) {
+      await emitSourceParticipation(
+        domain, 
+        'alternate_link', 
+        req.get('User-Agent') || ''
+      );
+    }
+    
+    // Size limit (2MB)
+    if (content.length > 2 * 1024 * 1024) {
+      return res.status(500).send('Content too large');
+    }
+    
+    res.send(content);
+    
+  } catch (error) {
+    console.error('[md-server] Error:', error);
+    
+    // Check if it's a database connection error
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.message?.includes('database')) {
+      logRequest(req, 503);
+      res.set('Cache-Control', 'no-store');
+      return res.status(503).json({ error: 'database_unavailable' });
+    }
+    
+    logRequest(req, 500);
+    res.set('Cache-Control', 'no-store');
+    res.status(500).send('Internal server error');
+  }
 });
 
 // Cleanup rate limit entries
