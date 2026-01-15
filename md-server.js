@@ -134,9 +134,8 @@ app.get('/test', (req, res) => {
 app.get('*', rateLimit, normalizeRequest, async (req, res) => {
   console.log('[md-server] Route hit:', req.path);
   try {
-    // Extract domain from normalized request
-    const segments = req.path.split('/').filter(Boolean);
-    const domain = segments[0] || 'unknown';
+    // Use normalized values from middleware
+    const { normalizedDomain: domain, normalizedPath: path } = req;
     
     // Check database availability first
     if (!pool) {
@@ -147,7 +146,6 @@ app.get('*', rateLimit, normalizeRequest, async (req, res) => {
     }
     
     console.log('[md-server] Database pool available');
-    const { normalizedDomain, normalizedPath: path } = req;
     
     // Rule A: Check if domain is verified
     const domainCheck = await pool.query(
