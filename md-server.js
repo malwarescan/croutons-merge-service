@@ -133,9 +133,11 @@ app.get('/test', (req, res) => {
 // Main markdown serving endpoint
 app.get('*', rateLimit, normalizeRequest, async (req, res) => {
   console.log('[md-server] Route hit:', req.path);
+  console.log('[md-server] Pool available:', !!pool);
   try {
     // Use normalized values from middleware
     const { normalizedDomain: domain, normalizedPath: path } = req;
+    console.log('[md-server] Normalized domain:', domain);
     
     // Check database availability first
     if (!pool) {
