@@ -3,7 +3,7 @@ builder = "DOCKERFILE"
 dockerfilePath = "./Dockerfile"
 
 [deploy]
-startCommand = "npm start"
+startCommand = "node md-server.js"
 restartPolicyType = "ON_FAILURE"
 healthcheckPath = "/v1/health"
 healthcheckTimeout = 100
