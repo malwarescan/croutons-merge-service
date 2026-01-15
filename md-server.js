@@ -104,6 +104,12 @@ app.get('/health', (req, res) => {
   res.json({ ok: true, ts: new Date().toISOString() });
 });
 
+// Test route without database
+app.get('/test', (req, res) => {
+  console.log('[md-server] Test route hit');
+  res.json({ message: 'Test route works', path: req.path });
+});
+
 // Main markdown serving endpoint
 app.get('*', rateLimit, normalizeRequest, async (req, res) => {
   console.log('[md-server] Route hit:', req.path);
