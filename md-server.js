@@ -130,95 +130,10 @@ app.get('/test', (req, res) => {
   res.json({ message: 'Test route works', path: req.path });
 });
 
-// Main markdown serving endpoint (without middleware for testing)
+// Main markdown serving endpoint (simple test)
 app.get('*', async (req, res) => {
-  console.log('[md-server] Route hit:', req.path);
-  console.log('[md-server] Pool available:', !!pool);
-  try {
-    // Extract domain directly since middleware is removed
-    const segments = req.path.split('/').filter(Boolean);
-    const domain = segments[0] || 'unknown';
-    const path = segments.slice(1).join('/') || 'index';
-    
-    console.log('[md-server] Extracted domain:', domain);
-    
-    // Check database availability first
-    if (!pool) {
-      console.log('[md-server] No database pool - returning 404 for unknown domains');
-      logRequest(req, 404);
-      res.set('Cache-Control', 'no-store');
-      return res.status(404).json({ error: 'domain_not_found', domain });
-    }
-    
-    console.log('[md-server] Database pool available');
-    
-    // Rule A: Check if domain is verified
-    const domainCheck = await pool.query(
-      'SELECT verified_at FROM verified_domains WHERE domain = $1',
-      [domain]
-    );
-
-    if (domainCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'domain_not_found', domain });
-    }
-    
-    if (!domainCheck.rows[0].verified_at) {
-      logRequest(req, 403);
-      res.set('Cache-Control', 'no-store');
-      return res.status(403).send('Forbidden');
-    }
-    
-    // Rule B: Check if active markdown exists
-    const markdownCheck = await pool.query(
-      'SELECT content, content_hash, generated_at FROM markdown_versions WHERE domain = $1 AND path = $2 AND is_active = true',
-      [domain, path]
-    );
-    
-    if (markdownCheck.rows.length === 0) {
-      logRequest(req, 404);
-      res.set('Cache-Control', 'no-store');
-      return res.status(404).send('Not found');
-    }
-    
-    // Rule C: Return markdown
-    const { content, content_hash, generated_at } = markdownCheck.rows[0];
-    
-    logRequest(req, 200);
-    res.set({
-      'Content-Type': 'text/markdown; charset=utf-8',
-      'Cache-Control': 'public, max-age=300',
-      'ETag': `"${content_hash}"`,
-      'Last-Modified': new Date(generated_at).toUTCString()
-    });
-    
-    // Emit source participation event
-    await emitSourceParticipation(
-      domain, 
-      'alternate_link', 
-      req.get('User-Agent') || ''
-    );
-    
-    // Size limit (2MB)
-    if (content.length > 2 * 1024 * 1024) {
-      return res.status(500).send('Content too large');
-    }
-    
-    res.send(content);
-    
-  } catch (error) {
-    console.error('[md-server] Error:', error);
-    
-    // Check if it's a database connection error
-    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.message?.includes('database')) {
-      logRequest(req, 503);
-      res.set('Cache-Control', 'no-store');
-      return res.status(503).json({ error: 'database_unavailable' });
-    }
-    
-    logRequest(req, 500);
-    res.set('Cache-Control', 'no-store');
-    res.status(500).send('Internal server error');
-  }
+  console.log('[md-server] Wildcard route hit:', req.path);
+  res.json({ message: 'Wildcard route works', path: req.path });
 });
 
 // Cleanup rate limit entries
