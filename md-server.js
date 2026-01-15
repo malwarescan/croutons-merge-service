@@ -164,6 +164,14 @@ app.get('*', rateLimit, normalizeRequest, async (req, res) => {
     
   } catch (error) {
     console.error('[md-server] Error:', error);
+    
+    // Check if it's a database connection error
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.message?.includes('database')) {
+      logRequest(req, 503);
+      res.set('Cache-Control', 'no-store');
+      return res.status(503).json({ error: 'database_unavailable' });
+    }
+    
     logRequest(req, 500);
     res.set('Cache-Control', 'no-store');
     res.status(500).send('Internal server error');
