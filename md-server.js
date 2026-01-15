@@ -135,9 +135,12 @@ app.get('*', async (req, res) => {
   console.log('[md-server] Route hit:', req.path);
   console.log('[md-server] Pool available:', !!pool);
   try {
-    // Use normalized values from middleware
-    const { normalizedDomain: domain, normalizedPath: path } = req;
-    console.log('[md-server] Normalized domain:', domain);
+    // Extract domain directly since middleware is removed
+    const segments = req.path.split('/').filter(Boolean);
+    const domain = segments[0] || 'unknown';
+    const path = segments.slice(1).join('/') || 'index';
+    
+    console.log('[md-server] Extracted domain:', domain);
     
     // Check database availability first
     if (!pool) {
