@@ -134,16 +134,20 @@ app.get('/test', (req, res) => {
 app.get('*', rateLimit, normalizeRequest, async (req, res) => {
   console.log('[md-server] Route hit:', req.path);
   try {
+    // Extract domain from normalized request
+    const segments = req.path.split('/').filter(Boolean);
+    const domain = segments[0] || 'unknown';
+    
     // Check database availability first
     if (!pool) {
       console.log('[md-server] No database pool - returning 404 for unknown domains');
       logRequest(req, 404);
       res.set('Cache-Control', 'no-store');
-      return res.status(404).json({ error: 'domain_not_found', domain: req.normalizedDomain });
+      return res.status(404).json({ error: 'domain_not_found', domain });
     }
     
     console.log('[md-server] Database pool available');
-    const { normalizedDomain: domain, normalizedPath: path } = req;
+    const { normalizedDomain, normalizedPath: path } = req;
     
     // Rule A: Check if domain is verified
     const domainCheck = await pool.query(
