@@ -131,7 +131,7 @@ app.get('/test', (req, res) => {
 });
 
 // Main markdown serving endpoint (simple test)
-app.get('*', async (req, res) => {
+app.get('*', (req, res) => {
   console.log('[md-server] Wildcard route hit:', req.path);
   res.json({ message: 'Wildcard route works', path: req.path });
 });
