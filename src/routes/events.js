@@ -1,7 +1,7 @@
 // src/routes/events.js
 // Graph event emission for Phase 7 integration
 
-const { pool } = require('../db');
+import { pool } from '../db.js';
 
 // Emit event to outbox table
 async function emitEvent(eventType, data) {
@@ -62,7 +62,7 @@ async function emitSourceParticipation(domain, discoveryMethod, userAgent) {
   });
 }
 
-module.exports = {
+export {
   emitMarkdownGenerated,
   emitMarkdownActivated,
   emitMarkdownDeactivated,
