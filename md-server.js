@@ -130,8 +130,8 @@ app.get('/test', (req, res) => {
   res.json({ message: 'Test route works', path: req.path });
 });
 
-// Main markdown serving endpoint
-app.get('*', rateLimit, normalizeRequest, async (req, res) => {
+// Main markdown serving endpoint (without middleware for testing)
+app.get('*', async (req, res) => {
   console.log('[md-server] Route hit:', req.path);
   console.log('[md-server] Pool available:', !!pool);
   try {
