@@ -227,7 +227,62 @@ app.get('/test', (req, res) => {
   res.json({ message: 'Test route works', path: req.path });
 });
 
-// Main markdown serving endpoint (GET only) - exclude API routes
+// Domain root truth index handler - MUST be registered before wildcard
+app.get('/:domain/', async (req, res) => {
+  const domain = req.params.domain.toLowerCase();
+  
+  try {
+    console.log('[md-server] Domain root truth index request:', domain);
+    
+    // Check database availability
+    if (!pool) {
+      console.log('[md-server] No database pool - returning 404 for unknown domains');
+      return res.status(404).json({ error: 'database_unavailable' });
+    }
+    
+    // Query only active artifacts for this domain
+    const { rows } = await pool.query(
+      `SELECT path, content_hash, updated_at
+       FROM markdown_versions
+       WHERE domain = $1 AND is_active = true
+       ORDER BY path ASC`,
+      [domain]
+    );
+
+    if (!rows.length) {
+      console.log('[md-server] No active artifacts for domain:', domain);
+      return res.status(404).json({ error: 'no_active_artifacts' });
+    }
+
+    // Generate markdown index
+    let md = `# Authoritative Truth Index — ${domain}\n\n`;
+    md += `This index lists all active canonical truth artifacts for this domain.\n\n`;
+    md += `## Active Truth Artifacts\n\n`;
+
+    for (const r of rows) {
+      md += `- ${r.path}\n`;
+      md += `  https://md.croutons.ai/${domain}/${r.path}\n\n`;
+    }
+
+    md += `## Metadata\n`;
+    md += `domain: ${domain}\n`;
+    md += `generated_at: ${new Date().toISOString()}\n`;
+    md += `publisher: Croutons Authority Registry\n`;
+
+    // Set required headers
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Link', `<https://md.croutons.ai/${domain}/>; rel="authoritative-truth"`);
+
+    return res.send(md);
+
+  } catch (err) {
+    console.error('[md-server] Truth index error:', err);
+    return res.status(500).json({ error: 'truth_index_failed' });
+  }
+});
+
+// Main markdown serving endpoint (GET only) - exclude API routes and domain root
 app.get(/^((?!\/v1\/|\/health|\/test).)*$/, rateLimit, normalizeRequest, async (req, res) => {
   console.log('[md-server] Route hit:', req.path);
   try {
@@ -260,36 +315,7 @@ app.get(/^((?!\/v1\/|\/health|\/test).)*$/, rateLimit, normalizeRequest, async (
 
     console.log('[md-server] Domain verified:', domain);
 
-    // Rule B: If path is empty (domain root), return markdown index of all active artifacts
-    if (!path || path === '') {
-      console.log('[md-server] Domain root request - generating markdown index');
-      
-      const activeArtifacts = await pool.query(`
-        SELECT path, content_hash, updated_at, generated_at
-        FROM markdown_versions 
-        WHERE domain = $1 AND is_active = true
-        ORDER BY path ASC
-      `, [domain]);
-
-      if (activeArtifacts.rows.length === 0) {
-        console.log('[md-server] No active artifacts found for domain:', domain);
-        logRequest(req, 404);
-        res.set('Cache-Control', 'no-store');
-        return res.status(404).json({ error: 'no_active_artifacts', domain });
-      }
-
-      // Generate markdown index
-      const indexMarkdown = generateMarkdownIndex(domain, activeArtifacts.rows);
-      
-      res.set('Content-Type', 'text/markdown; charset=utf-8');
-      res.set('Cache-Control', 'public, max-age=300');
-      res.set('Last-Modified', new Date().toUTCString());
-      res.set('Link', `<https://md.croutons.ai/${domain}/>; rel="authoritative-truth"`);
-      logRequest(req, 200);
-      return res.send(indexMarkdown);
-    }
-
-    // Rule C: Serve specific markdown file
+    // Rule B: Serve specific markdown file
     const result = await pool.query(
       'SELECT content, updated_at FROM markdown_versions WHERE domain = $1 AND path = $2 AND is_active = true',
       [domain, path]
