@@ -271,7 +271,7 @@ app.get('/:domain/', async (req, res) => {
 
     // Set required headers
     res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Cache-Control', 'no-store'); // Temporarily disable edge caching
     res.setHeader('Link', `<https://md.croutons.ai/${domain}/>; rel="authoritative-truth"`);
 
     return res.send(md);
