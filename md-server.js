@@ -145,7 +145,10 @@ app.get('/health', (req, res) => {
 
 // POST /v1/crawl/discover
 // Crawl-based truth page discovery
-app.post('/v1/crawl/discover', crawlAndClassifyPages);
+app.post('/v1/crawl/discover', (req, res) => {
+  console.log('[md-server] Crawl endpoint hit');
+  return crawlAndClassifyPages(req, res);
+});
 
 // Simple POST test
 app.post('/test-post', (req, res) => {
