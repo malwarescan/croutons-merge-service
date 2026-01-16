@@ -5,6 +5,7 @@ import express from 'express';
 import cors from 'cors';
 import { crawlAndClassifyPages } from './src/routes/crawl.js';
 import { activateMarkdown, deactivateMarkdown, listMarkdownVersions, activateMarkdownById } from './src/routes/admin.js';
+import { automateDomain, getAutomationStatus } from './src/routes/automate.js';
 
 // Database connection with error handling
 let pool = null;
@@ -144,11 +145,52 @@ app.get('/health', (req, res) => {
   res.json({ ok: true, ts: new Date().toISOString() });
 });
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    service: 'croutons-merge-service',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      crawl: 'POST /v1/crawl/discover',
+      automate: 'POST /v1/automate',
+      status: 'GET /v1/automate/status?domain=example.com',
+      admin: {
+        activate: 'POST /v1/admin/activate',
+        deactivate: 'POST /v1/admin/deactivate',
+        versions: 'GET /v1/admin/versions',
+        activateById: 'POST /v1/admin/activate-by-id'
+      },
+      serving: 'GET /{domain}/{path} - serves active markdown'
+    },
+    automation: {
+      description: 'Full automation: domain → concepts → artifacts → activation → serving',
+      concepts: ['engineered-systems', 'residential-mitigation', 'installation-compliance', 'maintenance-lifecycle', 'regulatory-standards'],
+      auto_activation: true,
+      zero_manual_steps: true
+    }
+  });
+});
+
 // POST /v1/crawl/discover
 // Crawl-based truth page discovery
 app.post('/v1/crawl/discover', (req, res) => {
   console.log('[md-server] Crawl endpoint hit');
   return crawlAndClassifyPages(req, res);
+});
+
+// POST /v1/automate
+// Full automation: domain → concepts → artifacts → activation → serving
+app.post('/v1/automate', (req, res) => {
+  console.log('[md-server] Automation endpoint hit');
+  return automateDomain(req, res);
+});
+
+// GET /v1/automate/status
+// Check automation status for a domain
+app.get('/v1/automate/status', (req, res) => {
+  console.log('[md-server] Automation status endpoint hit');
+  return getAutomationStatus(req, res);
 });
 
 // Admin middleware - API key protection
