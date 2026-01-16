@@ -4,6 +4,7 @@
 import express from 'express';
 import cors from 'cors';
 import { crawlAndClassifyPages } from './src/routes/crawl.js';
+import { activateMarkdown, deactivateMarkdown, listMarkdownVersions, activateMarkdownById } from './src/routes/admin.js';
 
 // Database connection with error handling
 let pool = null;
@@ -149,6 +150,28 @@ app.post('/v1/crawl/discover', (req, res) => {
   console.log('[md-server] Crawl endpoint hit');
   return crawlAndClassifyPages(req, res);
 });
+
+// Admin middleware - API key protection
+function requireAdminAuth(req, res, next) {
+  const apiKey = req.headers['x-api-key'] || req.headers['authorization'];
+  const expectedApiKey = process.env.ADMIN_API_KEY || 'croutons-admin-key-2024';
+  
+  if (!apiKey || apiKey !== expectedApiKey) {
+    return res.status(401).json({ 
+      error: 'unauthorized',
+      message: 'Valid admin API key required',
+      timestamp: new Date().toISOString()
+    });
+  }
+  
+  next();
+}
+
+// Admin routes (protected)
+app.post('/v1/admin/activate', requireAdminAuth, activateMarkdown);
+app.post('/v1/admin/deactivate', requireAdminAuth, deactivateMarkdown);
+app.get('/v1/admin/versions', requireAdminAuth, listMarkdownVersions);
+app.post('/v1/admin/activate-by-id', requireAdminAuth, activateMarkdownById);
 
 // Simple POST test
 app.post('/test-post', (req, res) => {
