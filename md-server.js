@@ -34,7 +34,7 @@ async function setupServer() {
 app.use(express.json());
 app.use(cors({
   origin: '*',
-  methods: ['GET'],
+  methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type']
 }));
 
