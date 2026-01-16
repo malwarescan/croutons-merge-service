@@ -6,6 +6,7 @@ import { SQLiteCache } from './src/cache/sqliteCache.js';
 import { CacheService } from './src/cache/cacheService.js';
 import { BkkMassageMergeService } from './src/services/bkkMassageMerge.js';
 import { loadCorpusFiles } from './src/loaders/corpusLoader.js';
+import { crawlAndClassifyPages } from './src/routes/crawl.js';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -199,6 +200,10 @@ app.get('/v1/merge/health', (req, res) => {
   });
 });
 
+// POST /v1/crawl/discover
+// Crawl-based truth page discovery
+app.post('/v1/crawl/discover', crawlAndClassifyPages);
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
@@ -210,6 +215,7 @@ app.get('/', (req, res) => {
       shops: 'GET /v1/shops?district=Asok',
       districts: 'GET /v1/districts',
       pricing: 'GET /v1/pricing?district=Asok',
+      crawl: 'POST /v1/crawl/discover',
     },
   });
 });
