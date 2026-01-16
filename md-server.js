@@ -227,8 +227,8 @@ app.get('/test', (req, res) => {
   res.json({ message: 'Test route works', path: req.path });
 });
 
-// Main markdown serving endpoint (GET only) - exclude admin routes
-app.get(/^((?!\/v1\/admin).)*$/, rateLimit, normalizeRequest, async (req, res) => {
+// Main markdown serving endpoint (GET only) - exclude API routes
+app.get(/^((?!\/v1\/|\/health|\/test).)*$/, rateLimit, normalizeRequest, async (req, res) => {
   console.log('[md-server] Route hit:', req.path);
   try {
     // Use normalized values from middleware
