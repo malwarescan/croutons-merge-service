@@ -147,13 +147,19 @@ app.get('/health', (req, res) => {
 // Crawl-based truth page discovery
 app.post('/v1/crawl/discover', crawlAndClassifyPages);
 
+// Simple POST test
+app.post('/test-post', (req, res) => {
+  console.log('[md-server] POST test hit');
+  res.json({ message: 'POST test works', body: req.body });
+});
+
 // Test route without database
 app.get('/test', (req, res) => {
   console.log('[md-server] Test route hit');
   res.json({ message: 'Test route works', path: req.path });
 });
 
-// Main markdown serving endpoint
+// Main markdown serving endpoint (GET only)
 app.get('*', rateLimit, normalizeRequest, async (req, res) => {
   console.log('[md-server] Route hit:', req.path);
   try {
