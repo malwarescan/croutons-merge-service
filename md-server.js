@@ -3,6 +3,7 @@
 
 import express from 'express';
 import cors from 'cors';
+import { crawlAndClassifyPages } from './src/routes/crawl.js';
 
 // Database connection with error handling
 let pool = null;
@@ -141,6 +142,10 @@ function logRequest(req, status) {
 app.get('/health', (req, res) => {
   res.json({ ok: true, ts: new Date().toISOString() });
 });
+
+// POST /v1/crawl/discover
+// Crawl-based truth page discovery
+app.post('/v1/crawl/discover', crawlAndClassifyPages);
 
 // Test route without database
 app.get('/test', (req, res) => {
