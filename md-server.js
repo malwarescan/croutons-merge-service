@@ -252,61 +252,70 @@ app.get(/^((?!\/v1\/|\/health|\/test).)*$/, rateLimit, normalizeRequest, async (
     );
 
     if (r.rows.length === 0) {
+      console.log('[md-server] Domain not verified:', domain);
+      logRequest(req, 404);
+      res.set('Cache-Control', 'no-store');
       return res.status(404).json({ error: 'domain_not_found', domain });
     }
-    
-    if (!r.rows[0].verified_at) {
-      logRequest(req, 403);
-      res.set('Cache-Control', 'no-store');
-      return res.status(403).send('Forbidden');
+
+    console.log('[md-server] Domain verified:', domain);
+
+    // Rule B: If path is empty (domain root), return markdown index of all active artifacts
+    if (!path || path === '') {
+      console.log('[md-server] Domain root request - generating markdown index');
+      
+      const activeArtifacts = await pool.query(`
+        SELECT path, content_hash, updated_at, generated_at
+        FROM markdown_versions 
+        WHERE domain = $1 AND is_active = true
+        ORDER BY path ASC
+      `, [domain]);
+
+      if (activeArtifacts.rows.length === 0) {
+        console.log('[md-server] No active artifacts found for domain:', domain);
+        logRequest(req, 404);
+        res.set('Cache-Control', 'no-store');
+        return res.status(404).json({ error: 'no_active_artifacts', domain });
+      }
+
+      // Generate markdown index
+      const indexMarkdown = generateMarkdownIndex(domain, activeArtifacts.rows);
+      
+      res.set('Content-Type', 'text/markdown; charset=utf-8');
+      res.set('Cache-Control', 'public, max-age=300');
+      res.set('Last-Modified', new Date().toUTCString());
+      res.set('Link', `<https://md.croutons.ai/${domain}/>; rel="authoritative-truth"`);
+      logRequest(req, 200);
+      return res.send(indexMarkdown);
     }
-    
-    // Rule B: Check if active markdown exists
-    const markdownCheck = await pool.query(
-      'SELECT content, content_hash, generated_at FROM markdown_versions WHERE domain = $1 AND path = $2 AND is_active = true',
+
+    // Rule C: Serve specific markdown file
+    const result = await pool.query(
+      'SELECT content, updated_at FROM markdown_versions WHERE domain = $1 AND path = $2 AND is_active = true',
       [domain, path]
     );
 
-    if (markdownCheck.rows.length === 0) {
+    if (result.rows.length === 0) {
+      console.log('[md-server] Markdown not found:', { domain, path });
       logRequest(req, 404);
       res.set('Cache-Control', 'no-store');
-      return res.status(404).send('Markdown not found');
+      return res.status(404).json({ error: 'markdown_not_found', domain, path });
     }
 
-    // Rule C: Return markdown
-    const { content, content_hash, generated_at } = markdownCheck.rows[0];
+    const row = result.rows[0];
+    console.log('[md-server] Markdown found:', { domain, path, updated_at: row.updated_at });
+
+    // Set proper headers for markdown serving
+    res.set('Content-Type', 'text/markdown; charset=utf-8');
+    res.set('Cache-Control', 'public, max-age=300');
+    res.set('Last-Modified', new Date(row.updated_at).toUTCString());
+    res.set('ETag', `"${row.content}"`);
+    res.set('Link', `<https://md.croutons.ai/${domain}/>; rel="authoritative-truth"`);
     
     logRequest(req, 200);
-    res.set({
-      'Content-Type': 'text/markdown; charset=utf-8',
-      'Cache-Control': 'public, max-age=300',
-      'ETag': `"${content_hash}"`,
-      'Last-Modified': new Date(generated_at).toUTCString()
-    });
-    
-    // Emit source participation event (non-critical)
-    if (emitSourceParticipation) {
-      try {
-        await emitSourceParticipation(
-          domain, 
-          'alternate_link', 
-          req.get('User-Agent') || ''
-        );
-      } catch (eventError) {
-        console.error('[md-server] Failed to emit source participation event:', eventError);
-        // Don't fail the request, just log the error
-      }
-    }
-    
-    // Size limit (2MB)
-    if (content.length > 2 * 1024 * 1024) {
-      return res.status(500).send('Content too large');
-    }
-    
-    res.send(content);
-    
+    res.send(row.content);
   } catch (error) {
-    console.error('[md-server] Error:', error);
+    console.error('[md-server] Error serving markdown:', error);
     console.error('[md-server] Stack trace:', error.stack);
     
     // Check if it's a database connection error
@@ -331,14 +340,11 @@ app.get(/^((?!\/v1\/|\/health|\/test).)*$/, rateLimit, normalizeRequest, async (
       });
     }
     
-    // Generic 500 error with structured response
     logRequest(req, 500);
-    res.set('Cache-Control', 'no-store');
     res.status(500).json({ 
       error: 'internal_server_error',
-      message: 'An unexpected error occurred while processing your request',
-      timestamp: new Date().toISOString(),
-      request_id: Math.random().toString(36).substr(2, 9)
+      message: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 });
