@@ -318,7 +318,7 @@ app.get(/^((?!\/v1\/|\/health|\/test).)*$/, rateLimit, normalizeRequest, async (
 
     // Rule B: Serve specific markdown file
     const result = await pool.query(
-      'SELECT content, updated_at FROM markdown_versions WHERE domain = $1 AND path = $2 AND is_active = true',
+      'SELECT content, content_hash, updated_at FROM markdown_versions WHERE domain = $1 AND path = $2 AND is_active = true',
       [domain, path]
     );
 
@@ -336,7 +336,8 @@ app.get(/^((?!\/v1\/|\/health|\/test).)*$/, rateLimit, normalizeRequest, async (
     res.set('Content-Type', 'text/markdown; charset=utf-8');
     res.set('Cache-Control', 'public, max-age=300');
     res.set('Last-Modified', new Date(row.updated_at).toUTCString());
-    res.set('ETag', `"${row.content}"`);
+    // Use content_hash for ETag (safe for multiline content)
+    res.set('ETag', `"${row.content_hash}"`);
     res.set('Link', `<https://md.croutons.ai/${domain}/>; rel="authoritative-truth"`);
     
     logRequest(req, 200);
