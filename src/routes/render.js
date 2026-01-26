@@ -112,13 +112,58 @@ async function renderMarkdownRoute(req, res) {
     const path = derivePath(source_url);
     const markdownContent = renderMarkdown(extracted_content, source_url, content_hash);
 
-    // Store markdown version
-    await pool.query(`
+    // Check if domain is verified (auto-activate only for verified domains)
+    const domainCheck = await pool.query(
+      'SELECT verified_at FROM verified_domains WHERE domain = $1',
+      [domain]
+    );
+    const isDomainVerified = domainCheck.rows.length > 0 && domainCheck.rows[0].verified_at !== null;
+
+    // Store markdown version (start as inactive)
+    const insertResult = await pool.query(`
       INSERT INTO markdown_versions (domain, path, content, content_hash, is_active)
       VALUES ($1, $2, $3, $4, false)
       ON CONFLICT (domain, path, content_hash) 
-      DO NOTHING
+      DO UPDATE SET
+        content = EXCLUDED.content,
+        updated_at = NOW()
+      RETURNING id
     `, [domain, path, markdownContent, content_hash]);
+
+    const versionId = insertResult.rows[0].id;
+
+    // Auto-activate if domain is verified (Design 1: auto-activate on successful ingest)
+    let isActive = false;
+    if (isDomainVerified) {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        
+        // Deactivate all other versions for this (domain, path)
+        await client.query(`
+          UPDATE markdown_versions 
+          SET is_active = false, updated_at = NOW()
+          WHERE domain = $1 AND path = $2 AND id != $3
+        `, [domain, path, versionId]);
+        
+        // Activate this version
+        await client.query(`
+          UPDATE markdown_versions 
+          SET is_active = true, updated_at = NOW()
+          WHERE id = $1
+        `, [versionId]);
+        
+        await client.query('COMMIT');
+        isActive = true;
+        console.log(`[render] Auto-activated markdown for verified domain: ${domain}/${path}`);
+      } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('[render] Auto-activation error:', error);
+        // Continue without activation if there's an error
+      } finally {
+        client.release();
+      }
+    }
 
     // Emit markdown.generated event
     await emitMarkdownGenerated(domain, path, content_hash);
@@ -131,7 +176,8 @@ async function renderMarkdownRoute(req, res) {
         source_url,
         content_hash,
         rendered_markdown: markdownContent,
-        is_active: false // Phase 3 - no activation yet
+        is_active: isActive,
+        auto_activated: isActive && isDomainVerified
       }
     });
 
